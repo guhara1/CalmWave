@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a1019"/><stop offset="1" stop-color="#16213a"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff9a4d"/><stop offset="1" stop-color="#f26a1b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="120" cy="540" r="260" fill="#3a568c" opacity="0.18"/>
+  <text x="90" y="250" font-family="Pretendard,sans-serif" font-size="34" font-weight="700" fill="url(#acc)">간다GO 지역 안내</text>
+  <text x="90" y="340" font-family="Pretendard,sans-serif" font-size="66" font-weight="800" fill="#f2f6fc">인천·부천·시흥</text>
+  <text x="90" y="410" font-family="Pretendard,sans-serif" font-size="42" font-weight="700" fill="#d6deea">출장마사지 생활권 안내</text>
+  <text x="90" y="470" font-family="Pretendard,sans-serif" font-size="28" fill="#9aa7bd">송도·부평·상동·배곧 등 서부 수도권 이용 기준</text>
+</svg>

@@ -1,0 +1,82 @@
+/* ==========================================================================
+   간다GO — Design Tokens (Premium Palette)
+   프리미엄 팔레트로 교체된 디자인 토큰 레이어.
+   기존 토큰 이름을 유지하면서 값만 프리미엄 팔레트로 재정의합니다.
+   ========================================================================== */
+
+:root {
+  /* ---- Core brand palette -------------------------------------------- */
+  /* 딥 네이비 베이스 + 웜 앰버/오렌지 액센트 + 리파인드 뉴트럴 */
+  --brand-orange:        #ff8a3d;   /* primary accent */
+  --brand-orange-strong: #f26a1b;   /* pressed / deep */
+  --brand-orange-soft:   #ffb27a;   /* hover glow */
+  --brand-amber:         #ffd27a;   /* highlight / premium gold */
+
+  /* Accent gradient (버튼·강조 오버레이) */
+  --grad-accent: linear-gradient(135deg, #ff9a4d 0%, #f26a1b 100%);
+  --grad-accent-soft: linear-gradient(135deg, rgba(255,154,77,.16), rgba(242,106,27,.10));
+
+  /* ---- Surfaces (dark, premium depth) -------------------------------- */
+  --bg-base:      #0a1019;   /* page background */
+  --bg-deep:      #070b12;   /* deepest layer */
+  --surface-1:    #111a29;   /* card */
+  --surface-2:    #16213472; /* raised card / overlay */
+  --surface-3:    #1b2942;   /* hover card */
+  --surface-line: #24334d;   /* borders / dividers */
+
+  /* ---- Text ---------------------------------------------------------- */
+  --text-strong:  #f2f6fc;
+  --text-base:    #d6deea;
+  --text-muted:   #9aa7bd;
+  --text-faint:   #6b7891;
+  --text-on-accent: #1a1006;
+
+  /* ---- Feedback ------------------------------------------------------ */
+  --ok:      #4fd6a0;
+  --warn:    #ffcf5c;
+  --danger:  #ff6b6b;
+
+  /* ---- Radii --------------------------------------------------------- */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-pill: 999px;
+
+  /* ---- Shadows / glows (component overlays) -------------------------- */
+  --shadow-card:   0 10px 30px -12px rgba(0,0,0,.55), 0 2px 6px -2px rgba(0,0,0,.4);
+  --shadow-raised: 0 18px 50px -18px rgba(0,0,0,.65);
+  --glow-accent:   0 10px 34px -8px rgba(242,106,27,.55);
+  --ring-accent:   0 0 0 1px rgba(255,138,61,.55), 0 0 0 4px rgba(255,138,61,.14);
+
+  /* ---- Typography ---------------------------------------------------- */
+  --font-sans: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
+               system-ui, "Segoe UI", Roboto, "Apple SD Gothic Neo",
+               "Noto Sans KR", sans-serif;
+
+  --fs-hero:  clamp(2rem, 4.5vw, 3.1rem);
+  --fs-h1:    clamp(1.7rem, 3.4vw, 2.4rem);
+  --fs-h2:    clamp(1.35rem, 2.6vw, 1.9rem);
+  --fs-h3:    clamp(1.1rem, 1.8vw, 1.3rem);
+  --fs-body:  1rem;
+  --fs-sm:    .9rem;
+  --fs-xs:    .8rem;
+
+  --lh-tight: 1.25;
+  --lh-body:  1.75;
+
+  /* ---- Layout -------------------------------------------------------- */
+  --maxw:     1160px;
+  --maxw-narrow: 820px;
+  --gap:      clamp(1rem, 2.4vw, 1.75rem);
+  --section-y: clamp(3.5rem, 8vw, 6rem);
+
+  /* ---- Motion -------------------------------------------------------- */
+  --ease: cubic-bezier(.22,.61,.36,1);
+  --dur:  .28s;
+}
+
+/* Light-scheme fallback kept minimal — site is a committed dark premium theme */
+@media (prefers-color-scheme: light) {
+  :root { color-scheme: dark; }
+}
