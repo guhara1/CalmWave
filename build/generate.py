@@ -26,7 +26,7 @@ def write(p, s):
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from admin_data import CITIES, STATIONS
+from admin_data import CITIES, STATIONS, SUBDONGS, DONG_OVERRIDES, DONG_DEEP
 
 FOOTER = read("partials/footer.html")
 RHEADER = None  # built from CITIES below, before any page is emitted
@@ -656,69 +656,141 @@ render_about()
 
 # ---------------------------------------------------------------------------
 # DISTRICT (행정구/권역) + DONG (행정동) pages
-#  - district: index,follow (실제 집계 가치)
-#  - dong: noindex,follow (템플릿 기반 얇은 페이지 — 도어웨이 색인 방지, 탐색은 가능)
+#  - district: index  (집계 가치)
+#  - dong: 대표 페이지 = index (부평동 샘플 구조). 번호동은 대표 페이지 안의 섹션으로만
+#    안내(개별 페이지/색인 없음). 검색 수요 강한 생활권은 별도 세부 페이지로 확장.
 # ---------------------------------------------------------------------------
-def dong_faq(name):
-    return [
-      (f"{name} 어디까지 방문 가능한가요?", "정확한 방문 주소, 가까운 역·생활권, 예약 가능 시간, 이동 기준을 확인한 뒤 안내합니다."),
-      ("호텔이나 오피스텔에서도 이용할 수 있나요?", "숙소 정책, 객실 출입 가능 여부, 공동현관, 엘리베이터, 관리 규정을 먼저 확인해야 합니다."),
+def dong_faq(name, has_sub):
+    q = [(f"{name} 전 지역 방문이 가능한가요?",
+          "실제 방문 주소, 가까운 생활권, 예약 가능 시간, 이동 기준, 건물 출입 방식을 확인한 뒤 안내합니다.")]
+    if has_sub:
+        q.append(("번호로 나뉜 동 페이지를 모두 만들어야 하나요?",
+                  "처음부터 모두 만들 필요는 없습니다. 대표 페이지에서 번호동을 생활권 섹션으로 안내하고, 검색 수요와 본문 품질이 충분한 경우에만 일부를 색인합니다."))
+    q += [
+      ("오피스텔 이용 시 무엇을 확인해야 하나요?",
+       "공동현관, 엘리베이터, 경비실, 주차, 관리 규정, 방문 가능 시간대를 확인해야 합니다."),
+      ("호텔이나 숙소에서도 이용할 수 있나요?",
+       "숙소 정책, 객실 출입 가능 여부, 예약자명, 프런트 확인 방식, 야간 출입 가능 여부를 먼저 확인해야 합니다."),
+      ("야간 예약은 무조건 가능한가요?",
+       "무조건 가능하다고 안내하지 않습니다. 주소, 이동 거리, 건물 출입, 예약 가능 시간 확인 후 안내합니다."),
       ("불법·선정적 서비스도 가능한가요?", "불법·선정적 서비스는 제공하거나 안내하지 않습니다."),
+      ("개인정보는 어떻게 처리하나요?",
+       "예약 확인과 연락에 필요한 최소 정보만 확인하며, 개인정보 처리 기준 페이지로 연결합니다."),
     ]
+    return q
+
+# 대표동 본문 공통 H2 (이용 장소·야간·개인정보 — people-first 안내)
+DONG_PLACE_SECTIONS = """
+        <h2>호텔·숙소 이용 전 확인사항</h2>
+        <p>호텔·숙소는 객실 출입 가능 여부, 프런트 확인 방식, 예약자명, 주차, 야간 출입 제한을 먼저 확인합니다.
+          자세한 기준은 <a href="/incheon-bucheon-siheung/check/hotel-policy.html">호텔·숙소 정책</a>에서 이어집니다.</p>
+        <h2>오피스텔 공동현관 확인</h2>
+        <p>오피스텔은 공동현관 비밀번호, 엘리베이터 이용, 경비실 안내, 관리 규정, 방문 가능 시간대를 확인합니다.
+          <a href="/incheon-bucheon-siheung/check/officetel-rule.html">오피스텔 관리 규정</a>을 함께 확인하세요.</p>
+        <h2>자택·아파트 방문 주소 확인 기준</h2>
+        <p>아파트·자택은 동·호수, 공동현관, 주차 위치, 경비실 안내, 엘리베이터, 늦은 시간 출입 가능 여부를 확인합니다.
+          <a href="/incheon-bucheon-siheung/check/apartment-access.html">아파트 공동현관 확인</a>을 참고하세요.</p>
+        <h2>야간 예약 전 확인할 내용</h2>
+        <p>야간 예약은 가능 여부를 단정하지 않습니다. 건물 출입, 이동 거리, 예약 가능 시간, 주소 확인이 먼저입니다.
+          <a href="/incheon-bucheon-siheung/check/time.html">예약 가능 시간</a>에서 확인하세요.</p>
+        <h2>개인정보 처리와 예약 연락 기준</h2>
+        <p>예약 확인에 필요한 최소한의 정보만 확인하며, 전화번호·주소 등은 예약 확인 목적 외로 사용하지 않습니다.
+          <a href="/incheon-bucheon-siheung/check/privacy.html">개인정보 처리방침</a>으로 연결합니다.</p>"""
 
 def render_dong(city_key, dist, dong):
     slug, name, desc, stations = dong
     base = f"/incheon-bucheon-siheung/{city_key}/{dist['slug']}/"
-    url = base + slug + ".html"
+    url = base + slug + "/"                      # 디렉터리형 URL (스펙 준수)
     city = CITIES[city_key]
+    ov = DONG_OVERRIDES.get(slug, {})
+    st_short = "·".join(stations.split("·")[:2])
     trail = [("간다GO","/"),("인천·부천·시흥","/incheon-bucheon-siheung/"),
              (city["name"], city["hub"]),(dist["name"], base),(name, url)]
-    title = f"{name} 출장마사지｜자택·호텔·오피스텔 방문 홈타이 — 간다GO"
-    mdesc = f"{name} 출장마사지·홈타이 방문 이용 기준과 인접 역·생활권을 안내합니다."
-    ld = jsonld(webpage_ld(SITE+url, f"{name} 출장마사지 안내"), breadcrumb_ld(trail), faq_ld(dong_faq(name)))
-    # 형제 동 (같은 구) 관련 링크 — 최대 6개
+    title = ov.get("title", f"{name} 출장마사지｜{st_short} 홈타이 이용 안내") + " — 간다GO"
+    h1    = ov.get("h1", f"{name} 출장마사지 · {st_short} 생활권 안내")
+    mdesc = ov.get("desc", f"{name} 출장마사지·홈타이 방문 이용 기준과 인접 역·생활권, 이용 장소를 안내합니다.")
+    introp = ov.get("intro",
+        f"{desc} {name}은 {st_short} 인접 생활권으로 상권·주거·숙소·오피스텔이 섞여 있을 수 있습니다. "
+        f"방문 케어는 행정동 번호보다 실제 이용 장소가 어디인지 확인하는 것이 중요합니다.")
+    sub = SUBDONGS.get(slug)
+    faqs = dong_faq(name, bool(sub))
+    ld = jsonld(webpage_ld(SITE+url, f"{name} 출장마사지 안내"), breadcrumb_ld(trail), faq_ld(faqs))
     sibs = [d for d in dist["dongs"] if d[0] != slug][:6]
-    sib_links = "".join(f'<a href="{base}{d[0]}.html">{html.escape(d[1])}</a>' for d in sibs)
-    s = head(title, mdesc, SITE+url, jsonld=ld, robots="noindex,follow,max-image-preview:large")
+    sib_links = "".join(f'<a href="{base}{d[0]}/">{html.escape(d[1])}</a>' for d in sibs)
+
+    # 번호동 통합 섹션
+    sub_html = ""
+    if sub:
+        items = "".join(f"<li><b>{html.escape(n)}</b> — {html.escape(note)}</li>" for n, note in sub)
+        sub_html = f"""
+        <h2>{name.replace('동','')} 번호동은 대표 생활권으로 확인합니다</h2>
+        <p>{name}은 행정동으로 여러 번호동으로 나뉘지만, 검색용으로 번호동을 전부 만들면 중복 위험이 큽니다.
+          아래처럼 대표 페이지에서 생활권으로 안내하고, 실제 검색 수요가 있는 생활권만 별도 페이지로 연결합니다.</p>
+        <ul>{items}</ul>"""
+
+    # 세부 이용 페이지 (있으면) 카드 링크
+    deep = DONG_DEEP.get(slug)
+    deep_html = ""
+    if deep:
+        cards = "".join(
+          f'<a class="card card--link" href="{pg["url"]}"><h3>{html.escape(pg["h1"].split(" · ")[0])}</h3>'
+          f'<p>{html.escape(pg["eyebrow"])}</p></a>' for pg in deep["pages"])
+        deep_html = f"""
+    <section class="section" style="padding-top:0;">
+      <div class="container"><div class="section-head"><h2>{name} 세부 이용 안내</h2>
+        <p>생활권·이용 장소·역세권별로 확인 사항을 나눠 안내합니다.</p></div>
+        <div class="grid cards-3">{cards}</div></div>
+    </section>"""
+
+    # 색인 정책: 실제 고유 콘텐츠(커스텀/번호동/세부페이지)가 있는 대표동만 index.
+    # 나머지 템플릿형 동은 noindex,follow (스펙: 2,000자 미만·지역명만 바꾼 페이지 색인 금지).
+    is_index = bool(ov or sub or deep)
+    robots = "index,follow,max-image-preview:large" if is_index else "noindex,follow,max-image-preview:large"
+    s = head(title, mdesc, SITE+url, jsonld=ld, robots=robots)
     s += breadcrumb_html(trail)
     s += f"""
   <main id="main">
-    {page_hero(f"{city['name']} · {dist['name']}", f"{name} 출장마사지 · 자택·호텔·오피스텔 방문 케어")}
+    {page_hero(f"{city['name']} · {dist['name']}", h1)}
     <section class="section">
       <div class="container prose">
-        <p class="lede">{html.escape(desc)}</p>
+        <h2>{name}은 어디 생활권인지 먼저 확인하세요</h2>
+        <p class="lede">{html.escape(introp)}</p>
         <p class="muted">인접 역·교통 · {html.escape(stations)}</p>
-        <p>{name}에서 방문 케어를 이용할 때는 정확한 방문 주소와 상세 호실, 건물 출입 방식을 먼저 확인하는 것이 좋습니다.
-          아파트는 <a href="/incheon-bucheon-siheung/check/apartment-access.html">공동현관 출입 방식</a>,
-          오피스텔은 <a href="/incheon-bucheon-siheung/check/officetel-rule.html">관리 규정</a>,
-          호텔·숙소는 <a href="/incheon-bucheon-siheung/check/hotel-policy.html">객실 방문 정책</a>을 함께 확인합니다.
-          예약 가능 시간과 야간 출입 가능 여부는 <a href="/incheon-bucheon-siheung/check/time.html">예약 가능 시간</a>에서 확인하세요.</p>
+        {sub_html}
+        {DONG_PLACE_SECTIONS}
+        <h2>불법·선정적 서비스 불가 안내</h2>
+        <p>불법·선정적 서비스는 제공하거나 안내하지 않습니다. 건전한 방문 케어만 안내합니다.</p>
       </div>
     </section>
+    {deep_html}
     <section class="section" style="padding-top:0;">
       <div class="container narrow"><div class="card"><h2>예약 전 체크리스트</h2>{CHECKLIST}</div></div>
     </section>
     <section class="section" style="padding-top:0;">
       <div class="container"><div class="section-head"><h2>Who · How · Why</h2></div>
         {whw_html("간다GO 예약 안내 담당이 "+name+" 생활권 자료로 작성·검수합니다.",
-                  "행정동별 숙소 유형과 인접 역·이동 조건을 반영해 안내합니다.",
+                  "행정동 번호가 아니라 실제 숙소 유형과 인접 역·이동 조건을 반영해 안내합니다.",
                   "이용자가 위치와 이용 장소를 정확히 확인하고 안심하고 예약하도록 돕기 위함입니다.")}</div>
     </section>
     <section class="section" style="padding-top:0;"><div class="container narrow">{NOTICE}</div></section>
     <section class="section" style="padding-top:0;">
-      <div class="container narrow"><div class="section-head"><h2>자주 묻는 질문</h2></div>{faq_html(dong_faq(name))}</div>
+      <div class="container narrow"><div class="section-head"><h2>자주 묻는 질문</h2></div>{faq_html(faqs)}</div>
     </section>
     <section class="section" style="padding-top:0;">
-      <div class="container narrow"><div class="section-head"><h2>같은 {dist['name']} 다른 지역</h2></div>
+      <div class="container narrow"><div class="section-head"><h2>관련 지역 보기</h2></div>
         <div class="related">{sib_links}
           <a href="{base}">{html.escape(dist['name'])} 전체</a>
           <a href="{city['hub']}">{city['name']}권 전체</a>
+          <a href="/incheon-bucheon-siheung/check/address.html">예약 전 확인</a>
         </div></div>
     </section>
   </main>
 {FOOT}"""
-    # dong 은 sitemap 에 넣지 않음 (noindex)
-    write(url.lstrip("/"), inject(s))
+    path = url.lstrip("/") + "index.html"
+    if is_index:
+        emit(path, url, s)          # 사이트맵 포함
+    else:
+        write(path, inject(s))      # noindex: 사이트맵 제외, 탐색은 가능
 
 def render_district(city_key, dist):
     city = CITIES[city_key]
@@ -755,7 +827,7 @@ def render_district(city_key, dist):
     </section>"""
     else:
         cards = "".join(
-          f'<a class="card card--link" href="{url}{d[0]}.html"><h3>{html.escape(d[1])}</h3>'
+          f'<a class="card card--link" href="{url}{d[0]}/"><h3>{html.escape(d[1])}</h3>'
           f'<p>{html.escape(d[3])}</p></a>' for d in dist["dongs"])
         body = f"""
     <section class="section">
@@ -792,6 +864,69 @@ for ck, cv in CITIES.items():
         render_district(ck, dist)
         for dong in dist["dongs"]:
             render_dong(ck, dist, dong)
+
+# ---------------------------------------------------------------------------
+# 대표동 세부 페이지 (생활권/이용장소/역세권) — 샘플: 부평동. index.
+# ---------------------------------------------------------------------------
+def render_deep(dslug, data):
+    dong = data["dong"]; dname, durl = data["district"]; hname, hurl = data["hub"]; rep = data["rep"]
+    for pg in data["pages"]:
+        u = pg["url"]
+        trail = [("간다GO","/"),("인천·부천·시흥","/incheon-bucheon-siheung/"),
+                 (hname, hurl),(dname, durl),(dong, rep),(pg["h1"].split(" · ")[0], u)]
+        faqs = [
+          (f"{pg['h1'].split(' · ')[0]} 근처도 안내되나요?",
+           "실제 방문 주소, 건물 출입 방식, 예약 가능 시간을 확인한 뒤 안내합니다. 출구 번호가 아닌 정확한 주소 기준입니다."),
+          ("야간 예약은 무조건 가능한가요?",
+           "무조건 가능하다고 안내하지 않습니다. 주소·이동 거리·건물 출입·예약 가능 시간 확인 후 안내합니다."),
+          ("불법·선정적 서비스도 가능한가요?", "불법·선정적 서비스는 제공하거나 안내하지 않습니다."),
+        ]
+        ld = jsonld(webpage_ld(SITE+u, pg["h1"].split(" · ")[0]+" 안내"), breadcrumb_ld(trail), faq_ld(faqs))
+        intro = "".join(('<p class="lede">' if i==0 else '<p>') + p + '</p>' for i,p in enumerate(pg["intro"]))
+        secs = "".join(f"<h2>{html.escape(h)}</h2>"+"".join(f"<p>{p}</p>" for p in ps) for h,ps in pg["sections"])
+        s = head(pg["title"]+" — 간다GO", pg["desc"], SITE+u, jsonld=ld)
+        s += breadcrumb_html(trail)
+        s += f"""
+  <main id="main">
+    {page_hero(pg["eyebrow"], pg["h1"])}
+    <section class="section">
+      <div class="container prose">
+        {intro}
+        <p class="muted">포함 지역 · {html.escape(pg["includes"])}</p>
+        {secs}
+        <h2>예약 전 확인 순서</h2>
+        <p>방문 케어는 ① 정확한 방문 주소와 건물명, ② 공동현관·엘리베이터 등 건물 출입 방식,
+          ③ 주차 가능 여부, ④ 예약 가능 시간과 야간 출입 가능 여부 순으로 확인합니다.
+          개인정보는 예약 확인과 연락에 필요한 최소 정보만 확인하며 목적 외로 사용하지 않습니다.
+          자세한 항목은 <a href="/incheon-bucheon-siheung/check/address.html">예약 전 확인</a>과
+          <a href="/incheon-bucheon-siheung/check/privacy.html">개인정보 처리방침</a>에서 이어집니다.</p>
+        <h2>불법·선정적 서비스 불가 안내</h2>
+        <p>불법·선정적 서비스는 제공하거나 안내하지 않습니다. 건전한 방문 케어만 안내합니다.</p>
+      </div>
+    </section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="card"><h2>예약 전 체크리스트</h2>{CHECKLIST}</div></div>
+    </section>
+    <section class="section" style="padding-top:0;"><div class="container narrow">{NOTICE}</div></section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="section-head"><h2>자주 묻는 질문</h2></div>{faq_html(faqs)}</div>
+    </section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="section-head"><h2>관련 안내 보기</h2></div>
+        <div class="related">
+          <a href="{rep}">{dong} 출장마사지</a>
+          <a href="{durl}">{dname} 출장마사지</a>
+          <a href="{hurl}">{hname} 출장마사지</a>
+          <a href="/incheon-bucheon-siheung/check/address.html">예약 전 확인</a>
+          <a href="/incheon-bucheon-siheung/check/service-policy.html">불법·선정적 서비스 불가 안내</a>
+        </div></div>
+    </section>
+  </main>
+{FOOT}"""
+        emit(u.lstrip("/") + "index.html", u, s)
+
+for dslug, data in DONG_DEEP.items():
+    render_deep(dslug, data)
 
 # ---------------------------------------------------------------------------
 # SUBWAY (지하철 중심) — 핵심 환승·상권 허브만. 출구별·노선별 페이지는 만들지 않음.

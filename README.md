@@ -10,7 +10,10 @@ incheon-bucheon-siheung/
   index.html                        지역 메인 (3대 핵심축 · 9대 생활권)
   incheon|bucheon|siheung/          3대 핵심축 허브 (행정구/권역 버튼)
     <행정구>/index.html             행정구·권역 페이지 (행정동 목록)   ← index
-    <행정구>/<행정동>.html          행정동 페이지                      ← noindex,follow
+    <행정구>/<행정동>/index.html     행정동 대표 페이지 (부평동 샘플 구조)
+                                      · 번호동(1~6동)은 페이지 내 섹션으로만 안내
+                                      · 콘텐츠가 충분한 대표동만 index, 나머지 noindex,follow
+  life/ · use/ · station/           대표동 세부 페이지(생활권/이용장소/역세권) — 부평동 샘플
   area/*.html                       9대 생활권 페이지
   subway/                           지하철 중심 안내 (핵심 역세권 허브)
   check/*.html                      예약 전 확인 · 개인정보 · 서비스 불가 안내
