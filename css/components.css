@@ -256,6 +256,15 @@
 }
 .notice--danger { border-left-color: var(--danger); }
 
+/* ---- Reviews --------------------------------------------------------- */
+.review { display: flex; flex-direction: column; }
+.review-stars { color: var(--brand-orange); letter-spacing: 3px; font-size: 1.05rem; margin-bottom: .6rem; }
+.review .review-body { color: var(--text-base); font-size: var(--fs-sm); margin: 0; }
+.review-meta { margin-top: .9rem; color: var(--text-faint); font-size: var(--fs-xs); font-weight: 600; }
+.review-summary { display: inline-flex; align-items: center; gap: .5rem; justify-content: center;
+  margin-top: .3rem; color: var(--text-muted); font-size: var(--fs-sm); }
+.review-summary b { color: var(--brand-amber); font-size: 1.1rem; }
+
 /* ---- Related links --------------------------------------------------- */
 .related { display: flex; flex-wrap: wrap; gap: .6rem; }
 .related a {
