@@ -1,4 +1,13 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://gandago.co.kr/sitemap.xml
+User-agent: Yeti
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+Sitemap: https://calmwave-3ul.pages.dev/sitemap.xml

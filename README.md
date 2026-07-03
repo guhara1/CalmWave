@@ -49,5 +49,5 @@ python3 build/generate.py     # 파셜 주입 + 지역/행정동/지하철/정�
 ## ⚠️ 배포 전 교체 필요
 - **텔레그램 핸들**: `https://t.me/ganda_go` 는 임시값입니다. 실제 계정으로 교체하세요.
   (`partials/footer.html`, `index.html` hero, `build/generate.py`의 `TG` 상수)
-- **도메인**: `https://gandago.co.kr` 을 실제 도메인으로 교체하세요 (`build/generate.py`의 `SITE`, 각 canonical/OG).
+- **도메인**: `https://calmwave-3ul.pages.dev` 을 실제 도메인으로 교체하세요 (`build/generate.py`의 `SITE`, 각 canonical/OG).
 - 상호: 간다GO · 전화예약: 0508-202-4719

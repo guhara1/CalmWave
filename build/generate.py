@@ -10,9 +10,15 @@ Run:  python3 build/generate.py
 import os, re, html, datetime, json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SITE = "https://gandago.co.kr"
+SITE = "https://calmwave-3ul.pages.dev"
 TEL = "0508-202-4719"
 TG = "https://t.me/ganda_go"  # ⚠️ 임시 텔레그램 핸들 — 실제 계정으로 교체
+NAVER = '<meta name="naver-site-verification" content="3da93b58a4e68c7bcbd8ab493ac5c492574fcf64" />'
+
+# 실제 이용 후기만 넣습니다. 비어 있으면 Review/AggregateRating 스키마는 출력하지 않습니다.
+# (가짜 후기·허위 평점은 Google/Naver 스팸 정책 위반 → 절대 자동 생성하지 않음)
+# 예시 형식: {"author":"홍**","rating":5,"date":"2026-06-01","body":"실제 후기 내용"}
+REVIEWS = []
 
 def read(p):
     with open(os.path.join(ROOT, p), encoding="utf-8") as f:
@@ -45,10 +51,12 @@ def head(title, desc, url, og_img="og-region.svg", jsonld="", robots="index,foll
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  {NAVER}
   <title>{html.escape(title)}</title>
   <meta name="description" content="{html.escape(desc)}" />
   <link rel="canonical" href="{url}" />
   <meta name="robots" content="{robots}" />
+  <link rel="alternate" type="application/rss+xml" title="간다GO 안내" href="/rss.xml" />
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="간다GO" />
   <meta property="og:title" content="{html.escape(title)}" />
@@ -143,9 +151,42 @@ def webpage_ld(url, name, img="og-region.svg"):
               "isPartOf":{"@id":SITE+"/#website"},"about":{"@id":SITE+"/#org"},
               "primaryImageOfPage":f"{SITE}/assets/{img}"})
 
+def _service_node():
+    svc = {"@type":"Service","@id":SITE+"/#service","name":"간다GO 출장마사지·홈타이",
+           "serviceType":"출장마사지 · 홈타이 방문 케어","provider":{"@id":SITE+"/#org"},
+           "areaServed":["인천","부천","시흥"],
+           "offers":[
+             {"@type":"Offer","name":"60분 코스","price":"90000","priceCurrency":"KRW","description":"기본 컨디션·릴랙스 케어"},
+             {"@type":"Offer","name":"90분 코스","price":"150000","priceCurrency":"KRW","description":"아로마 포함 추천 구성"},
+             {"@type":"Offer","name":"120분 코스","price":"180000","priceCurrency":"KRW","description":"전신 집중 프리미엄 케어"}]}
+    # 실제 후기가 있을 때만 Review/AggregateRating 출력 (허위 평점 금지)
+    if REVIEWS:
+        ratings = [r["rating"] for r in REVIEWS]
+        svc["aggregateRating"] = {"@type":"AggregateRating",
+            "ratingValue": round(sum(ratings)/len(ratings), 1),
+            "reviewCount": len(REVIEWS), "bestRating": 5, "worstRating": 1}
+        svc["review"] = [{"@type":"Review","author":{"@type":"Person","name":r["author"]},
+            "datePublished":r["date"],"reviewBody":r["body"],
+            "reviewRating":{"@type":"Rating","ratingValue":r["rating"],"bestRating":5,"worstRating":1}}
+            for r in REVIEWS]
+    return svc
+
+def _global_nodes():
+    org = {"@type":"Organization","@id":SITE+"/#org","name":"간다GO","url":SITE+"/",
+           "description":"간다GO 출장마사지·홈타이 예약 안내 서비스","telephone":"+82-508-202-4719",
+           "logo":SITE+"/assets/og-cover.svg","image":SITE+"/assets/og-cover.svg",
+           "areaServed":["인천","부천","시흥","서부 수도권"],
+           "contactPoint":[{"@type":"ContactPoint","telephone":"+82-508-202-4719",
+                            "contactType":"reservations","availableLanguage":["Korean"]}],
+           "sameAs":[TG]}
+    site = {"@type":"WebSite","@id":SITE+"/#website","url":SITE+"/","name":"간다GO",
+            "publisher":{"@id":SITE+"/#org"},"inLanguage":"ko-KR"}
+    return [J(org), J(site), J(_service_node())]
+
 def jsonld(*nodes):
+    graph = _global_nodes() + list(nodes)   # Org/WebSite/Service on every page
     return ('<script type="application/ld+json">{"@context":"https://schema.org","@graph":['
-            + ",".join(nodes) + "]}</script>")
+            + ",".join(graph) + "]}</script>")
 
 def faq_html(faqs, open_first=True):
     out = ['<div class="faq">']
@@ -210,7 +251,28 @@ PRICING = """
       </div>
     </section>"""
 
-FOOT = PRICING + """
+# 사이트 전역 롱테일 내부링크 밴드 (모든 페이지 하단, 가격표 위).
+LONGTAIL = """
+    <section class="section" style="padding-top:0;">
+      <div class="container">
+        <div class="section-head"><h2>인기 지역·주제 바로가기</h2>
+          <p>이용 상황에 맞는 안내를 롱테일 주제로 모았습니다.</p></div>
+        <div class="related">
+          <a href="/incheon-bucheon-siheung/life/bupyeong-station-market/">부평역·부평시장 생활권 예약 전 확인</a>
+          <a href="/incheon-bucheon-siheung/use/bupyeong-dong-officetel/">부평동 오피스텔 공동현관 확인</a>
+          <a href="/incheon-bucheon-siheung/area/songdo-yeonsu-nonhyeon.html">송도 국제업무지구 호텔 숙소 이용</a>
+          <a href="/incheon-bucheon-siheung/area/baegot-jeongwang-oido.html">정왕·시화산단 인접 숙소 예약 기준</a>
+          <a href="/incheon-bucheon-siheung/area/yeongjong-airport-jemulpo.html">영종 인천공항 인접 숙소 이용</a>
+          <a href="/incheon-bucheon-siheung/area/bucheon-jungdong-sangdong-songnae.html">부천 중동·상동 오피스텔 이용</a>
+          <a href="/incheon-bucheon-siheung/area/cheongna-seohae-geomdan.html">청라·검단 신도시 아파트 공동현관</a>
+          <a href="/incheon-bucheon-siheung/subway/">인천·부천·시흥 지하철 역세권 안내</a>
+          <a href="/incheon-bucheon-siheung/check/travel-fee.html">외곽 이동비 기준 보기</a>
+          <a href="/incheon-bucheon-siheung/check/service-policy.html">불법·선정적 서비스 불가 안내</a>
+        </div>
+      </div>
+    </section>"""
+
+FOOT = LONGTAIL + PRICING + """
   <!--#FOOTER#-->
   <script src="/js/main.js" defer></script>
 </body>
@@ -1020,18 +1082,55 @@ for p in ["index.html", "incheon-bucheon-siheung/index.html"]:
 # sitemap.xml + robots.txt
 # ---------------------------------------------------------------------------
 today = "2026-07-03"
+uniq = list(dict.fromkeys(URLS))
 urls_xml = "".join(
     f"<url><loc>{SITE}{u}</loc><lastmod>{today}</lastmod>"
+    f"<changefreq>weekly</changefreq>"
     f"<priority>{'1.0' if u=='/' else '0.8' if u.count('/')<=2 else '0.6'}</priority></url>"
-    for u in dict.fromkeys(URLS))
+    for u in uniq)
 write("sitemap.xml",
       '<?xml version="1.0" encoding="UTF-8"?>\n'
       '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + urls_xml + "</urlset>\n")
 
-write("robots.txt",
-      "User-agent: *\nAllow: /\n\nSitemap: %s/sitemap.xml\n" % SITE)
+# RSS 2.0 피드 — 네이버/구글 빠른 발견용. 색인 대상 페이지를 항목으로.
+def _title_of(path):
+    try:
+        m = re.search(r"<title>(.*?)</title>", read(path))
+        return html.unescape(m.group(1)) if m else path
+    except Exception:
+        return path
+rss_items = ""
+for u in uniq:
+    p = (u.lstrip("/") + "index.html") if u.endswith("/") else u.lstrip("/")
+    if not os.path.exists(p):
+        continue
+    t = html.escape(_title_of(p))
+    rss_items += (f"<item><title>{t}</title><link>{SITE}{u}</link>"
+                  f"<guid isPermaLink=\"true\">{SITE}{u}</guid>"
+                  f"<pubDate>Fri, 03 Jul 2026 00:00:00 +0900</pubDate></item>")
+write("rss.xml",
+      '<?xml version="1.0" encoding="UTF-8"?>\n'
+      '<rss version="2.0"><channel>'
+      f'<title>간다GO 출장마사지·홈타이 안내</title><link>{SITE}/</link>'
+      '<description>인천·부천·시흥 출장마사지·홈타이 방문 케어 지역 안내</description>'
+      '<language>ko</language>'
+      f'<lastBuildDate>Fri, 03 Jul 2026 00:00:00 +0900</lastBuildDate>'
+      f'<atom:link xmlns:atom="http://www.w3.org/2005/Atom" href="{SITE}/rss.xml" rel="self" type="application/rss+xml"/>'
+      + rss_items + '</channel></rss>\n')
 
-print(f"Generated {len(dict.fromkeys(URLS))} pages.")
+# robots.txt — 전 봇 허용 + 네이버(Yeti)/구글 명시 + 사이트맵.
+write("robots.txt",
+      "User-agent: *\n"
+      "Allow: /\n\n"
+      "User-agent: Yeti\n"         # Naver
+      "Allow: /\n\n"
+      "User-agent: Googlebot\n"
+      "Allow: /\n\n"
+      "User-agent: Bingbot\n"
+      "Allow: /\n\n"
+      f"Sitemap: {SITE}/sitemap.xml\n")
+
+print(f"Generated {len(uniq)} pages.")
 print("Pages:")
 for u in dict.fromkeys(URLS):
     print("  ", u)
