@@ -52,6 +52,7 @@ def head(title, desc, url, og_img="og-region.svg", jsonld=""):
   <meta property="og:url" content="{url}" />
   <meta property="og:image" content="{SITE}/assets/{og_img}" />
   <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preload" href="/assets/hero.webp" as="image" />
   <link rel="stylesheet" href="/css/tokens.css" />
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/components.css" />
@@ -60,6 +61,17 @@ def head(title, desc, url, og_img="og-region.svg", jsonld=""):
 <body>
   <a class="skip-link" href="#main">본문 바로가기</a>
   <!--#RHEADER#-->"""
+
+HERO_IMG = "/assets/hero.webp"
+
+def page_hero(eyebrow, h1):
+    return f"""
+  <section class="section page-hero" style="--hero-image:url('{HERO_IMG}');padding-block:clamp(2.2rem,5vw,3.6rem)">
+    <div class="container">
+      <span class="eyebrow">{html.escape(eyebrow)}</span>
+      <h1>{html.escape(h1)}</h1>
+    </div>
+  </section>"""
 
 def breadcrumb_html(trail):
     lis = "".join(
@@ -229,10 +241,9 @@ def render_hub(key, d):
     s += breadcrumb_html(trail)
     s += f"""
   <main id="main">
-    <section class="section" style="padding-top:1rem;">
+    {page_hero("인천·부천·시흥 지역 안내", d["h1"])}
+    <section class="section">
       <div class="container">
-        <span class="eyebrow">인천·부천·시흥 지역 안내</span>
-        <h1>{html.escape(d["h1"])}</h1>
         <div class="prose"><p class="lede">{d["lead"]}</p>
           <p>예약 전에는 <a href="/incheon-bucheon-siheung/check/address.html">방문 주소</a>,
             <a href="/incheon-bucheon-siheung/check/building-access.html">건물 출입 방식</a>,
@@ -370,10 +381,9 @@ def render_area(a):
     s += breadcrumb_html(trail)
     s += f"""
   <main id="main">
-    <section class="section" style="padding-top:1rem;">
+    {page_hero(a['hub'][0]+" 생활권", a['h1'])}
+    <section class="section">
       <div class="container prose">
-        <span class="eyebrow">{a['hub'][0]} 생활권</span>
-        <h1>{html.escape(a['h1'])}</h1>
         <p class="muted">포함 지역 · {html.escape(a['incs'])}</p>
         {body}
         <h2>이용 장소 기준</h2>
@@ -430,10 +440,9 @@ def render_doc(slug, title, desc, h1, sections, faqs=None, danger=False):
     n = NOTICE if not danger else NOTICE.replace('notice notice--danger','notice notice--danger')
     s += f"""
   <main id="main">
-    <section class="section" style="padding-top:1rem;">
+    {page_hero("예약 전 확인 · 운영 기준", h1)}
+    <section class="section">
       <div class="container prose">
-        <span class="eyebrow">예약 전 확인 · 운영 기준</span>
-        <h1>{html.escape(h1)}</h1>
         {body}
       </div>
     </section>
@@ -529,10 +538,9 @@ def render_about():
     s += breadcrumb_html(trail)
     s += f"""
   <main id="main">
-    <section class="section" style="padding-top:1rem;">
+    {page_hero("E-E-A-T · Who/How/Why", "작성자·검수자 안내")}
+    <section class="section">
       <div class="container prose">
-        <span class="eyebrow">E-E-A-T · Who/How/Why</span>
-        <h1>작성자·검수자 안내</h1>
         <p class="lede">이 사이트의 지역 안내 콘텐츠는 간다GO 예약 안내 담당이 서부 수도권(인천·부천·시흥) 생활권 자료를
           바탕으로 작성하고 검수합니다.</p>
         <h2>작성 기준</h2>

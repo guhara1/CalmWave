@@ -14,6 +14,7 @@
   <meta property="og:url" content="https://gandago.co.kr/incheon-bucheon-siheung/" />
   <meta property="og:image" content="https://gandago.co.kr/assets/og-region.svg" />
 
+  <link rel="preload" href="/assets/hero.webp" as="image" />
   <link rel="stylesheet" href="/css/tokens.css" />
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/components.css" />
@@ -77,10 +78,14 @@
   </div>
 
   <main id="main">
-    <section class="section" style="padding-top:1rem;">
+    <section class="section page-hero" style="--hero-image:url('/assets/hero.webp');padding-block:clamp(2.2rem,5vw,3.6rem)">
       <div class="container">
         <span class="eyebrow">서부 수도권 생활권 안내</span>
         <h1>인천·부천·시흥 출장마사지 · 서부 수도권 생활권 안내</h1>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container">
         <div class="prose">
           <p class="lede">이 페이지는 지역명만 반복하는 안내가 아니라, 서부 수도권 <strong>실사용 생활권</strong>을 기준으로
             내 위치와 이용 장소를 확인하도록 돕는 지역 안내입니다. 인천은 송도·연수·구월·부평·계양·청라·검단·영종·제물포처럼

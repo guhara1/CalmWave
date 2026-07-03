@@ -104,6 +104,28 @@
 .hero > .container { position: relative; z-index: 2; }
 .hero h1 { font-size: var(--fs-hero); max-width: 18ch; text-shadow: 0 2px 18px rgba(0,0,0,.5); }
 .hero .lede { max-width: 52ch; text-shadow: 0 1px 10px rgba(0,0,0,.45); }
+
+/* ---- Page hero (interior pages: 지역/생활권/정책) --------------------- */
+/* 메인 히어로보다 낮은 배너. 같은 이미지를 강한 스크림 위에 얹어
+   본문 텍스트 가독성을 유지합니다. */
+.page-hero {
+  position: relative;
+  background-color: var(--bg-deep);
+  background-image: var(--hero-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+.page-hero::before {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.66) 0%, rgba(0,0,0,.80) 55%, rgba(6,8,12,.96) 100%),
+    linear-gradient(90deg, rgba(0,0,0,.60), rgba(0,0,0,.30) 60%, transparent);
+}
+.page-hero > .container { position: relative; z-index: 1; }
+.page-hero h1 { text-shadow: 0 2px 16px rgba(0,0,0,.55); }
+.page-hero .lede, .page-hero p { text-shadow: 0 1px 10px rgba(0,0,0,.5); }
 .hero-actions { display: flex; flex-wrap: wrap; gap: .8rem; margin-top: 1.6rem; }
 .hero-meta { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1.4rem; color: var(--text-muted); font-size: var(--fs-sm); }
 .hero-meta b { color: var(--text-strong); }

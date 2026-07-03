@@ -18,6 +18,7 @@
   <meta name="twitter:card" content="summary_large_image" />
 
   <link rel="preload" href="css/tokens.css" as="style" />
+  <link rel="preload" href="/assets/hero.webp" as="image" fetchpriority="high" />
   <link rel="stylesheet" href="css/tokens.css" />
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/components.css" />
@@ -111,9 +112,7 @@
 
   <main id="main">
     <!-- Hero -->
-    <!-- 배경 이미지 추가: 아래 <section> 에 style 속성만 넣으면 됩니다.
-         예) <section class="hero" style="--hero-image:url('/assets/hero.jpg')"> -->
-    <section class="hero">
+    <section class="hero" style="--hero-image:url('/assets/hero.webp')">
       <div class="container">
         <span class="eyebrow">간다GO · 출장마사지 · 홈타이</span>
         <h1>부르면 갑니다. 정찰 요금으로 편안하게.</h1>
