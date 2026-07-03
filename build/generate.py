@@ -24,8 +24,12 @@ def write(p, s):
     with open(full, "w", encoding="utf-8") as f:
         f.write(s)
 
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from admin_data import CITIES, STATIONS
+
 FOOTER = read("partials/footer.html")
-RHEADER = read("partials/rheader.html")
+RHEADER = None  # built from CITIES below, before any page is emitted
 
 def inject(s):
     return (s.replace("<!--#FOOTER#-->", FOOTER)
@@ -34,7 +38,7 @@ def inject(s):
 # ---------------------------------------------------------------------------
 # Shared HTML helpers
 # ---------------------------------------------------------------------------
-def head(title, desc, url, og_img="og-region.svg", jsonld=""):
+def head(title, desc, url, og_img="og-region.svg", jsonld="", robots="index,follow,max-image-preview:large"):
     assert len(desc) <= 80, f"description too long ({len(desc)}): {desc}"
     return f"""<!DOCTYPE html>
 <html lang="ko">
@@ -44,7 +48,7 @@ def head(title, desc, url, og_img="og-region.svg", jsonld=""):
   <title>{html.escape(title)}</title>
   <meta name="description" content="{html.escape(desc)}" />
   <link rel="canonical" href="{url}" />
-  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <meta name="robots" content="{robots}" />
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="간다GO" />
   <meta property="og:title" content="{html.escape(title)}" />
@@ -72,6 +76,39 @@ def page_hero(eyebrow, h1):
       <h1>{html.escape(h1)}</h1>
     </div>
   </section>"""
+
+# ---------------------------------------------------------------------------
+# Regional header with 행정구 dropdown mega-menu (built from CITIES)
+# 클릭(details) 시 행정구 버튼들이 펼쳐집니다 — JS 불필요, 모바일 호환.
+# ---------------------------------------------------------------------------
+def _mega(city_key):
+    c = CITIES[city_key]
+    btns = f'<a class="mega-all" href="{c["hub"]}">{c["name"]}권 전체 보기 →</a>'
+    for d in c["districts"]:
+        btns += f'<a href="/incheon-bucheon-siheung/{city_key}/{d["slug"]}/">{html.escape(d["name"])}</a>'
+    return (f'<details class="nav-mega"><summary>{c["name"]}권</summary>'
+            f'<div class="mega">{btns}</div></details>')
+
+def build_rheader():
+    return f"""  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="/">간다<b>GO</b> <span>지역 안내</span></a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="메뉴 열기">☰</button>
+      <nav class="nav" id="primary-nav" aria-label="지역 안내 메뉴">
+        <a href="/incheon-bucheon-siheung/">홈</a>
+        {_mega('incheon')}
+        {_mega('bucheon')}
+        {_mega('siheung')}
+        <a href="/incheon-bucheon-siheung/#areas">생활권</a>
+        <a href="/incheon-bucheon-siheung/subway/">지하철</a>
+        <a href="/incheon-bucheon-siheung/check/address.html">예약 전 확인</a>
+        <a class="btn btn--accent nav-cta" href="tel:0508-202-4719">전화예약 0508-202-4719</a>
+      </nav>
+    </div>
+  </header>"""
+
+RHEADER = build_rheader()
+write("partials/rheader.html", RHEADER + "\n")
 
 def breadcrumb_html(trail):
     lis = "".join(
@@ -239,6 +276,10 @@ def render_hub(key, d):
         for n, desc, u in d["regions"])
     s = head(d["title"], d["desc"], SITE+d["url"], jsonld=ld)
     s += breadcrumb_html(trail)
+    city = CITIES[key]
+    dist_btns = "".join(
+        f'<a href="/incheon-bucheon-siheung/{key}/{dd["slug"]}/">{html.escape(dd["name"])}</a>'
+        for dd in city["districts"])
     s += f"""
   <main id="main">
     {page_hero("인천·부천·시흥 지역 안내", d["h1"])}
@@ -249,6 +290,13 @@ def render_hub(key, d):
             <a href="/incheon-bucheon-siheung/check/building-access.html">건물 출입 방식</a>,
             <a href="/incheon-bucheon-siheung/check/time.html">예약 가능 시간</a>,
             <a href="/incheon-bucheon-siheung/check/travel-fee.html">외곽 이동비 기준</a>을 함께 확인하세요.</p></div>
+      </div>
+    </section>
+    <section class="section" style="padding-top:0;">
+      <div class="container">
+        <div class="section-head"><h2>{city["name"]} {city["mid_label"]} 바로가기</h2>
+          <p>{city["mid_label"]}를 선택하면 행정동 안내로 이동합니다.</p></div>
+        <div class="related">{dist_btns}</div>
       </div>
     </section>
     <section class="section" style="padding-top:0;">
@@ -563,6 +611,221 @@ def render_about():
     emit("incheon-bucheon-siheung/about/index.html", url, s)
 
 render_about()
+
+# ---------------------------------------------------------------------------
+# DISTRICT (행정구/권역) + DONG (행정동) pages
+#  - district: index,follow (실제 집계 가치)
+#  - dong: noindex,follow (템플릿 기반 얇은 페이지 — 도어웨이 색인 방지, 탐색은 가능)
+# ---------------------------------------------------------------------------
+def dong_faq(name):
+    return [
+      (f"{name} 어디까지 방문 가능한가요?", "정확한 방문 주소, 가까운 역·생활권, 예약 가능 시간, 이동 기준을 확인한 뒤 안내합니다."),
+      ("호텔이나 오피스텔에서도 이용할 수 있나요?", "숙소 정책, 객실 출입 가능 여부, 공동현관, 엘리베이터, 관리 규정을 먼저 확인해야 합니다."),
+      ("불법·선정적 서비스도 가능한가요?", "불법·선정적 서비스는 제공하거나 안내하지 않습니다."),
+    ]
+
+def render_dong(city_key, dist, dong):
+    slug, name, desc, stations = dong
+    base = f"/incheon-bucheon-siheung/{city_key}/{dist['slug']}/"
+    url = base + slug + ".html"
+    city = CITIES[city_key]
+    trail = [("간다GO","/"),("인천·부천·시흥","/incheon-bucheon-siheung/"),
+             (city["name"], city["hub"]),(dist["name"], base),(name, url)]
+    title = f"{name} 출장마사지｜{dist['name']} 행정동 안내 — 간다GO"
+    mdesc = f"{name} 출장마사지·홈타이 방문 이용 기준과 인접 역·생활권을 안내합니다."
+    ld = jsonld(webpage_ld(SITE+url, f"{name} 출장마사지 안내"), breadcrumb_ld(trail), faq_ld(dong_faq(name)))
+    # 형제 동 (같은 구) 관련 링크 — 최대 6개
+    sibs = [d for d in dist["dongs"] if d[0] != slug][:6]
+    sib_links = "".join(f'<a href="{base}{d[0]}.html">{html.escape(d[1])}</a>' for d in sibs)
+    s = head(title, mdesc, SITE+url, jsonld=ld, robots="noindex,follow,max-image-preview:large")
+    s += breadcrumb_html(trail)
+    s += f"""
+  <main id="main">
+    {page_hero(f"{city['name']} · {dist['name']}", f"{name} 출장마사지 · 생활권 이용 안내")}
+    <section class="section">
+      <div class="container prose">
+        <p class="lede">{html.escape(desc)}</p>
+        <p class="muted">인접 역·교통 · {html.escape(stations)}</p>
+        <p>{name}에서 방문 케어를 이용할 때는 정확한 방문 주소와 상세 호실, 건물 출입 방식을 먼저 확인하는 것이 좋습니다.
+          아파트는 <a href="/incheon-bucheon-siheung/check/apartment-access.html">공동현관 출입 방식</a>,
+          오피스텔은 <a href="/incheon-bucheon-siheung/check/officetel-rule.html">관리 규정</a>,
+          호텔·숙소는 <a href="/incheon-bucheon-siheung/check/hotel-policy.html">객실 방문 정책</a>을 함께 확인합니다.
+          예약 가능 시간과 야간 출입 가능 여부는 <a href="/incheon-bucheon-siheung/check/time.html">예약 가능 시간</a>에서 확인하세요.</p>
+      </div>
+    </section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="card"><h2>예약 전 체크리스트</h2>{CHECKLIST}</div></div>
+    </section>
+    <section class="section" style="padding-top:0;">
+      <div class="container"><div class="section-head"><h2>Who · How · Why</h2></div>
+        {whw_html("간다GO 예약 안내 담당이 "+name+" 생활권 자료로 작성·검수합니다.",
+                  "행정동별 숙소 유형과 인접 역·이동 조건을 반영해 안내합니다.",
+                  "이용자가 위치와 이용 장소를 정확히 확인하고 안심하고 예약하도록 돕기 위함입니다.")}</div>
+    </section>
+    <section class="section" style="padding-top:0;"><div class="container narrow">{NOTICE}</div></section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="section-head"><h2>자주 묻는 질문</h2></div>{faq_html(dong_faq(name))}</div>
+    </section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="section-head"><h2>같은 {dist['name']} 다른 지역</h2></div>
+        <div class="related">{sib_links}
+          <a href="{base}">{html.escape(dist['name'])} 전체</a>
+          <a href="{city['hub']}">{city['name']}권 전체</a>
+        </div></div>
+    </section>
+  </main>
+{FOOT}"""
+    # dong 은 sitemap 에 넣지 않음 (noindex)
+    write(url.lstrip("/"), inject(s))
+
+def render_district(city_key, dist):
+    city = CITIES[city_key]
+    url = f"/incheon-bucheon-siheung/{city_key}/{dist['slug']}/"
+    trail = [("간다GO","/"),("인천·부천·시흥","/incheon-bucheon-siheung/"),
+             (city["name"], city["hub"]),(dist["name"], url)]
+    title = f"{dist['name']} 출장마사지｜행정동 이용 안내 — 간다GO"
+    mdesc = f"{dist['name']} 행정동별 출장마사지·홈타이 이용 기준과 생활권을 안내합니다."
+    faqs = [
+      (f"{dist['name']}은 어느 행정동까지 안내되나요?",
+       f"{dist['name']} 주요 행정동을 생활권 기준으로 안내하며, 번호가 나뉜 동(1·2·3동)은 대표 동으로 묶어 안내합니다."),
+      ("행정동을 먼저 확인해야 하나요?",
+       "네. 같은 구 안에서도 상권·주거·역세권 조건이 달라 방문 주소와 인접 역을 먼저 확인하는 것이 좋습니다."),
+      ("불법·선정적 서비스도 가능한가요?", "불법·선정적 서비스는 제공하거나 안내하지 않습니다."),
+    ]
+    ld = jsonld(webpage_ld(SITE+url, f"{dist['name']} 출장마사지 안내"), breadcrumb_ld(trail), faq_ld(faqs))
+    s = head(title, mdesc, SITE+url, jsonld=ld)
+    s += breadcrumb_html(trail)
+    if dist.get("overview_only"):
+        body = f"""
+    <section class="section">
+      <div class="container prose">
+        <p class="lede">{html.escape(dist['desc'])}</p>
+        <p>{dist['name']}은 이동 거리·방문 가능 기준을 먼저 확인한 뒤 안내하는 지역입니다.
+          정확한 방문 주소와 <a href="/incheon-bucheon-siheung/check/travel-fee.html">외곽 이동비 기준</a>,
+          <a href="/incheon-bucheon-siheung/check/time.html">예약 가능 시간</a>을 함께 확인해 주세요.</p>
+      </div>
+    </section>"""
+    else:
+        cards = "".join(
+          f'<a class="card card--link" href="{url}{d[0]}.html"><h3>{html.escape(d[1])}</h3>'
+          f'<p>{html.escape(d[3])}</p></a>' for d in dist["dongs"])
+        body = f"""
+    <section class="section">
+      <div class="container prose"><p class="lede">{html.escape(dist['desc'])}</p>
+        <p>아래 행정동을 선택하면 생활권·인접 역·이용 장소 기준을 확인할 수 있습니다.
+          번호로 나뉜 동은 대표 동으로 묶어 안내합니다.</p></div>
+    </section>
+    <section class="section" style="padding-top:0;">
+      <div class="container"><div class="section-head"><h2>{dist['name']} 행정동</h2></div>
+        <div class="grid cards-3">{cards}</div></div>
+    </section>"""
+    s += f"""
+  <main id="main">
+    {page_hero(f"{city['name']} {city['mid_label']}", f"{dist['name']} 출장마사지 · 행정동 안내")}{body}
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="card"><h2>예약 전 체크리스트</h2>{CHECKLIST}</div></div>
+    </section>
+    <section class="section" style="padding-top:0;"><div class="container narrow">{NOTICE}</div></section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="section-head"><h2>자주 묻는 질문</h2></div>{faq_html(faqs)}</div>
+    </section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="section-head"><h2>다른 {city['mid_label']} 보기</h2></div>
+        <div class="related">{"".join(f'<a href="/incheon-bucheon-siheung/{city_key}/{o["slug"]}/">{html.escape(o["name"])}</a>' for o in city["districts"] if o["slug"]!=dist["slug"])}
+          <a href="{city['hub']}">{city['name']}권 전체</a></div></div>
+    </section>
+  </main>
+{FOOT}"""
+    write(url.lstrip("/") + "index.html", inject(s))
+    URLS.append(url)
+
+for ck, cv in CITIES.items():
+    for dist in cv["districts"]:
+        render_district(ck, dist)
+        for dong in dist["dongs"]:
+            render_dong(ck, dist, dong)
+
+# ---------------------------------------------------------------------------
+# SUBWAY (지하철 중심) — 핵심 환승·상권 허브만. 출구별·노선별 페이지는 만들지 않음.
+# ---------------------------------------------------------------------------
+def render_subway():
+    idx_url = "/incheon-bucheon-siheung/subway/"
+    trail0 = [("간다GO","/"),("인천·부천·시흥","/incheon-bucheon-siheung/"),("지하철 중심 안내", idx_url)]
+    cards = "".join(
+      f'<a class="card card--link" href="/incheon-bucheon-siheung/subway/{s[0]}.html">'
+      f'<h3>{html.escape(s[1])}</h3><p>{html.escape(s[2])} · {html.escape(s[3][:38])}…</p></a>'
+      for s in STATIONS)
+    faqs = [
+      ("지하철역 근처에서도 이용할 수 있나요?", "역세권 숙소·오피스텔은 정확한 출구 방향이 아닌 실제 방문 주소와 건물 출입 방식을 확인해 안내합니다."),
+      ("출구별·노선별 페이지는 없나요?", "검색 조작을 위한 출구별·노선별 페이지는 만들지 않습니다. 핵심 환승·상권 허브만 안내합니다."),
+    ]
+    ld = jsonld(webpage_ld(SITE+idx_url, "지하철 중심 출장마사지 안내"), breadcrumb_ld(trail0), faq_ld(faqs))
+    s = head("지하철 중심 출장마사지｜인천·부천·시흥 역세권 안내 — 간다GO",
+             "인천·부천·시흥 지하철 역세권 출장마사지·홈타이 이용 기준을 역별로 안내합니다.",
+             SITE+idx_url, jsonld=ld)
+    s += breadcrumb_html(trail0)
+    s += f"""
+  <main id="main">
+    {page_hero("지하철 중심 안내", "지하철 역세권 출장마사지 · 이용 안내")}
+    <section class="section">
+      <div class="container prose"><p class="lede">인천·부천·시흥의 핵심 환승·상권 역을 중심으로 역세권 이용 기준을 안내합니다.
+        출구별·노선별 페이지는 검색 조작 방지를 위해 만들지 않으며, 실제 생활권 가치가 있는 허브 역만 정리했습니다.</p></div>
+    </section>
+    <section class="section" style="padding-top:0;">
+      <div class="container"><div class="section-head"><h2>핵심 역세권</h2></div>
+        <div class="grid cards-3">{cards}</div></div>
+    </section>
+    <section class="section" style="padding-top:0;"><div class="container narrow">{NOTICE}</div></section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="section-head"><h2>자주 묻는 질문</h2></div>{faq_html(faqs)}</div>
+    </section>
+  </main>
+{FOOT}"""
+    emit("incheon-bucheon-siheung/subway/index.html", idx_url, s)
+
+    for slug, name, lines, desc, rel in STATIONS:
+        url = f"/incheon-bucheon-siheung/subway/{slug}.html"
+        trail = trail0[:-1] + [("지하철 중심 안내", idx_url), (name, url)]
+        title = f"{name} 출장마사지｜{lines} 역세권 이용 안내 — 간다GO"
+        mdesc = f"{name} 역세권 출장마사지·홈타이 이용 기준과 인접 생활권을 안내합니다."
+        sfaq = [
+          (f"{name} 근처 숙소도 안내되나요?", "역세권 숙소·오피스텔은 실제 방문 주소와 건물 출입 방식, 예약 가능 시간을 확인해 안내합니다."),
+          ("불법·선정적 서비스도 가능한가요?", "불법·선정적 서비스는 제공하거나 안내하지 않습니다."),
+        ]
+        ld = jsonld(webpage_ld(SITE+url, f"{name} 역세권 출장마사지 안내"), breadcrumb_ld(trail), faq_ld(sfaq))
+        st = head(title, mdesc, SITE+url, jsonld=ld)
+        st += breadcrumb_html(trail)
+        st += f"""
+  <main id="main">
+    {page_hero(f"지하철 · {lines}", f"{name} 출장마사지 · 역세권 이용 안내")}
+    <section class="section">
+      <div class="container prose">
+        <p class="lede">{html.escape(desc)}</p>
+        <p>{name} 인근에서 방문 케어를 이용할 때는 정확한 방문 주소와 상세 호실, 건물 출입 방식을 먼저 확인하는 것이 좋습니다.
+          자세한 이용 장소 기준은 <a href="{rel}">인접 생활권 안내</a>와
+          <a href="/incheon-bucheon-siheung/check/address.html">예약 전 확인</a>에서 이어집니다.</p>
+      </div>
+    </section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="card"><h2>예약 전 체크리스트</h2>{CHECKLIST}</div></div>
+    </section>
+    <section class="section" style="padding-top:0;"><div class="container narrow">{NOTICE}</div></section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="section-head"><h2>자주 묻는 질문</h2></div>{faq_html(sfaq)}</div>
+    </section>
+    <section class="section" style="padding-top:0;">
+      <div class="container narrow"><div class="section-head"><h2>다른 역세권 보기</h2></div>
+        <div class="related">
+          <a href="{idx_url}">지하철 전체</a>
+          <a href="{rel}">인접 생활권</a>
+          <a href="/incheon-bucheon-siheung/">서부 수도권 전체</a>
+        </div></div>
+    </section>
+  </main>
+{FOOT}"""
+        emit(f"incheon-bucheon-siheung/subway/{slug}.html", url, st)
+
+render_subway()
 
 # ---------------------------------------------------------------------------
 # Inject partials into hand-written pages (index.html + regional main)

@@ -63,6 +63,37 @@
 
 .nav-toggle { display: none; margin-left: auto; background: var(--surface-1); border: 1px solid var(--surface-line); color: var(--text-base); border-radius: var(--r-sm); padding: .5rem .7rem; font-size: 1.1rem; cursor: pointer; }
 
+/* ---- Nav dropdown mega-menu (행정구/권역 버튼) ------------------------ */
+.nav-mega { position: relative; }
+.nav-mega > summary {
+  list-style: none; cursor: pointer; user-select: none;
+  color: var(--text-muted); font-size: var(--fs-sm); font-weight: 600;
+  padding: .5rem .7rem; border-radius: var(--r-sm);
+}
+.nav-mega > summary::-webkit-details-marker { display: none; }
+.nav-mega > summary::after { content: " ▾"; color: var(--brand-orange); font-size: .85em; }
+.nav-mega[open] > summary, .nav-mega > summary:hover { color: var(--text-strong); background: var(--surface-2); }
+.mega {
+  position: absolute; top: calc(100% + .4rem); left: 0; z-index: 60;
+  min-width: 320px; padding: .9rem;
+  background: var(--surface-1); border: 1px solid var(--surface-line);
+  border-radius: var(--r-md); box-shadow: var(--shadow-raised);
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem;
+}
+.mega a {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: .58rem .7rem; border-radius: var(--r-pill);
+  background: var(--surface-2); border: 1px solid var(--surface-line);
+  color: var(--text-base); font-size: var(--fs-sm); font-weight: 600; line-height: 1.2;
+}
+.mega a:hover { border-color: var(--brand-orange-soft); color: var(--text-strong); }
+.mega .mega-all { grid-column: 1 / -1; background: var(--grad-accent); color: var(--text-on-accent); border-color: transparent; font-weight: 800; }
+@media (max-width: 860px) {
+  .nav-mega { width: 100%; }
+  .nav-mega > summary { padding: .7rem .8rem; }
+  .mega { position: static; box-shadow: none; margin-top: .3rem; min-width: 0; }
+}
+
 @media (max-width: 860px) {
   .nav-toggle { display: inline-flex; }
   .nav { display: none; margin-left: 0; width: 100%; flex-direction: column; align-items: stretch; padding-bottom: 1rem; }
