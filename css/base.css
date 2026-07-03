@@ -21,8 +21,8 @@ body {
   line-height: var(--lh-body);
   color: var(--text-base);
   background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(242,106,27,.10), transparent 60%),
-    radial-gradient(900px 500px at 90% 10%, rgba(58,86,140,.14), transparent 55%),
+    radial-gradient(1100px 560px at 50% -12%, rgba(242,106,27,.07), transparent 62%),
+    radial-gradient(820px 460px at 92% 6%, rgba(58,86,140,.08), transparent 58%),
     var(--bg-base);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;

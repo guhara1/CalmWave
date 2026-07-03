@@ -73,14 +73,37 @@
 }
 
 /* ---- Hero ------------------------------------------------------------ */
-.hero { position: relative; padding-block: clamp(3.5rem, 9vw, 6.5rem); overflow: hidden; }
-.hero::after {
-  content: ""; position: absolute; inset: auto -20% -60% -20%; height: 60%;
-  background: radial-gradient(closest-side, rgba(242,106,27,.16), transparent);
+/* 배경 이미지 추가 방법:
+   <section class="hero" style="--hero-image:url('/assets/hero.jpg')"> …
+   이미지가 없으면 순수 블랙 배경으로 표시됩니다. 스크림(::before)이 항상
+   글자 가독성을 보장합니다. */
+.hero {
+  position: relative;
+  padding-block: clamp(4rem, 10vw, 7rem);
+  overflow: hidden;
+  background-color: var(--bg-deep);
+  background-image: var(--hero-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+/* 이미지 위 가독성 스크림 (블랙 톤) */
+.hero::before {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.72) 60%, rgba(6,8,12,.94) 100%),
+    linear-gradient(90deg, rgba(0,0,0,.65) 0%, rgba(0,0,0,.25) 55%, transparent 100%);
   pointer-events: none;
 }
-.hero h1 { font-size: var(--fs-hero); max-width: 18ch; }
-.hero .lede { max-width: 52ch; }
+/* 오렌지 글로우 */
+.hero::after {
+  content: ""; position: absolute; inset: auto -20% -60% -20%; height: 60%; z-index: 1;
+  background: radial-gradient(closest-side, rgba(242,106,27,.14), transparent);
+  pointer-events: none;
+}
+.hero > .container { position: relative; z-index: 2; }
+.hero h1 { font-size: var(--fs-hero); max-width: 18ch; text-shadow: 0 2px 18px rgba(0,0,0,.5); }
+.hero .lede { max-width: 52ch; text-shadow: 0 1px 10px rgba(0,0,0,.45); }
 .hero-actions { display: flex; flex-wrap: wrap; gap: .8rem; margin-top: 1.6rem; }
 .hero-meta { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1.4rem; color: var(--text-muted); font-size: var(--fs-sm); }
 .hero-meta b { color: var(--text-strong); }

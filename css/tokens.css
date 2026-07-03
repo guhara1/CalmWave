@@ -16,19 +16,19 @@
   --grad-accent: linear-gradient(135deg, #ff9a4d 0%, #f26a1b 100%);
   --grad-accent-soft: linear-gradient(135deg, rgba(255,154,77,.16), rgba(242,106,27,.10));
 
-  /* ---- Surfaces (dark, premium depth) -------------------------------- */
-  --bg-base:      #0a1019;   /* page background */
-  --bg-deep:      #070b12;   /* deepest layer */
-  --surface-1:    #111a29;   /* card */
-  --surface-2:    #16213472; /* raised card / overlay */
-  --surface-3:    #1b2942;   /* hover card */
-  --surface-line: #24334d;   /* borders / dividers */
+  /* ---- Surfaces (black tone, premium depth) -------------------------- */
+  --bg-base:      #06080c;   /* page background — near black */
+  --bg-deep:      #000000;   /* deepest layer — true black */
+  --surface-1:    #0e1219;   /* card */
+  --surface-2:    #141a2480; /* raised card / overlay */
+  --surface-3:    #1a212e;   /* hover card */
+  --surface-line: #27303f;   /* borders / dividers (raised for visibility) */
 
-  /* ---- Text ---------------------------------------------------------- */
-  --text-strong:  #f2f6fc;
-  --text-base:    #d6deea;
-  --text-muted:   #9aa7bd;
-  --text-faint:   #6b7891;
+  /* ---- Text (bright, high-contrast) ---------------------------------- */
+  --text-strong:  #ffffff;   /* headings — max contrast */
+  --text-base:    #e9edf4;   /* body — bright */
+  --text-muted:   #aab4c6;   /* secondary — still ≥4.5:1 on black */
+  --text-faint:   #7d889c;   /* tertiary / meta */
   --text-on-accent: #1a1006;
 
   /* ---- Feedback ------------------------------------------------------ */
